@@ -4,12 +4,9 @@ const MODEL = 'fal-ai/kling-video/v2.5-turbo/standard/image-to-video'
 
 export async function POST(request) {
   try {
-    if (!process.env.FAL_KEY) {
-      return Response.json({ ok: false, error: 'FAL_KEY is not configured on the server.' }, { status: 500 })
-    }
-
     const form = await request.formData()
     const character = form.get('character')
+    const mode = String(form.get('mode') || 'free')
     const style = String(form.get('style') || 'Cute')
     const motion = String(form.get('motion') || '').trim()
 
@@ -19,6 +16,19 @@ export async function POST(request) {
 
     if (!character.type.startsWith('image/')) {
       return Response.json({ ok: false, error: 'Character file must be an image.' }, { status: 400 })
+    }
+
+    if (mode === 'free') {
+      return Response.json({
+        ok: true,
+        testMode: true,
+        status: 'COMPLETED',
+        message: 'Free test completed — no AI credits were used.'
+      })
+    }
+
+    if (!process.env.FAL_KEY) {
+      return Response.json({ ok: false, error: 'FAL_KEY is not configured on the server.' }, { status: 500 })
     }
 
     const imageUrl = await fal.storage.upload(character)
@@ -42,7 +52,7 @@ export async function POST(request) {
     return Response.json({
       ok: true,
       requestId: request_id,
-      message: 'Your character is being animated now.'
+      message: 'Your character is being animated with Kling now.'
     })
   } catch (error) {
     console.error('Generation submit failed:', error)
